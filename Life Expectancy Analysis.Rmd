@@ -3,9 +3,9 @@ title: "Life Expectancy Analysis"
 author: "Isha Doshi"
 date: "2022-12-12"
 output:
-  word_document: default
-  html_document: default
   pdf_document: default
+  html_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -111,7 +111,7 @@ library(ggplot2)
 ggplot(data, aes(x=log(lifeExpectancy))) +
     geom_histogram(bins=30)
 ```
-**Created a model to explain life expectancy with just time, where t is time (year). Used year − 2000 instead of just year for time.Since the data has data points far from each other, scaling technique will help make them closer to each other or in simpler words, scaling will make the data points generalized so that the distance between them will be lower. If the difference between the data points is very high, the model could be unstable, which would result in the model producing poor results. Another reason why this makes more sense is the intercept comes as negative without changing the year, and since life expectancy cannot be negative, it makes sense to scale the data.**
+**Created a model to explain life expectancy with just time, where t is time (year). Used year - 2000 instead of just year for time.Since the data has data points far from each other, scaling technique will help make them closer to each other or in simpler words, scaling will make the data points generalized so that the distance between them will be lower. If the difference between the data points is very high, the model could be unstable, which would result in the model producing poor results. Another reason why this makes more sense is the intercept comes as negative without changing the year, and since life expectancy cannot be negative, it makes sense to scale the data.**
 
 ```{r}
 data$mod_year=data$year-2000
