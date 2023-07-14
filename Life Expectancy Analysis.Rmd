@@ -1,0 +1,143 @@
+---
+title: "Life Expectancy Analysis"
+author: "Isha Doshi"
+date: "2022-12-12"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+**Life expectancy is a statistical measure of the average time someone is expected to live, based on the year of their birth, current age and other demographic factors including their sex. Period life expectancy assumes mortality rates remain constant into the future, while cohort life expectancy uses projected changes in future mortality rates. Period life expectancy (ex) is the average number of additional years a person would live if he or she experienced the age-specific mortality rates of the given area and time period for the rest of their life.**
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+```
+
+**Loaded and cleaned the data–removed all cases with missing life expectancy, year, country name and code.**
+
+```{r}
+data=read.delim("gapminder.csv.bz2")
+ncol(data)
+nrow(data)
+#renaming time to year
+data=data %>%rename(year=time)
+head(data)
+#checking nulls
+sum(is.na(data$lifeExpectancy))
+sum(is.na(data$year))
+sum(is.na(data$name))
+sum(is.na(data$iso3))
+sum(is.na(data$iso2))
+#removing nulls and blanks
+data = data[!(is.na(data$lifeExpectancy) | data$lifeExpectancy==""), ]
+data = data[!(is.na(data$year) | data$year==""), ]
+data = data[!(data$name==""), ]
+data = data[!(data$iso3==""), ]
+data = data[!(data$iso2==""), ]
+ncol(data)
+nrow(data)
+
+```
+
+**There are 203 unique countries in our data**
+
+```{r}
+length(unique(data$name))
+```
+**The first and last year with valid life expectancy data**
+
+```{r}
+first = min(data$year)
+firstRow=data[which.min(data$year),]
+firstRow
+last = max(data$year)
+lastRow=data[which.max(data$year),]
+lastRow
+cat("first year with valid life expectancy", first,"\n")
+cat("last year with valid life expectancy ", last,"\n")
+```
+**Lowest and highest life expectancy values and the country/year they correspond to**
+
+The lowest life expectancy wass present in Cambodia (1977)
+The highest life expectancy was present in San Marino (2012)
+```{r}
+
+min=data[which.min(data$lifeExpectancy),]
+min
+max=data[which.max(data$lifeExpectancy),]
+max
+
+```
+
+**The shortest life expectancy corresponds to a genocide in Cambodia which resulted in the death of 1.5 to 2 million people during 1975 to 1979**
+
+**Plotting the life expectancy over time for all countries.**
+
+**I added Rwanda because there was a genocide in 1994 which resulted in deaths of 800,000 people.**
+```{r}
+p <- ggplot(data=data, aes(x=year, y=lifeExpectancy, group=name, fill="gray")) +
+    geom_line(alpha=0.1)
+data_subset=data%>%filter(name=="United States of America"|name=="Korea, Republic of"|name=="Cambodia"|name=="China"|name=="Rwanda")
+head(data_subset)
+p=p+geom_line(data=data_subset, aes(x=year, y=lifeExpectancy,group=name, color=name, alpha=0.5))
+p
+```
+**Life expectancy seems to be increasing over the years, probably due to better better health care and hygiene, healthier lifestyles, diet, and improved medical care. China's life expectancy improved greatly during the 70s. United States and Korea too has had a better life expectancy over the years. There are dips in Cambodia and Rwanda's life expectancy due to genocide and tragic killings in the country.**
+
+**Looking at how life expectancy and fertility are related. Made a fertility rate versus life expectancy plot of all countries with selected countries highlighted. Used arrows to mark which way the time goes on the figure.**
+
+```{r}
+plot <- ggplot(data=data, aes(x=lifeExpectancy, y=fertilityRate, group=name, fill="gray")) +
+    geom_line(alpha=0.1,arrow = arrow())
+plot=plot+geom_line(data=data_subset, aes(x=lifeExpectancy, y=fertilityRate, group=name, color=name),arrow = arrow(length=unit(0.10,"cm")))
+plot
+```
+
+**Fertility rate is decreasing while life expectancy is increasing over time. The reason why fertility rate could be decreasing might be because of women empowerment in education and the workforce, lower child mortality and the increased cost of raising children. The highlighted countries are also following the same trend.**
+ 
+**Displaying the distribution of life expectancy. It is a little left skewed. We can try log-transformation to see if it distributes the data more normally. Log transformation is making it more left skewed, it would be better to not perform log transformation in this case.**
+```{r}
+library(ggplot2)
+ggplot(data, aes(x=lifeExpectancy)) +
+    geom_histogram(binwidth=4)
+
+library(ggplot2)
+ggplot(data, aes(x=log(lifeExpectancy))) +
+    geom_histogram(bins=30)
+```
+**Created a model to explain life expectancy with just time, where t is time (year). Used year − 2000 instead of just year for time.Since the data has data points far from each other, scaling technique will help make them closer to each other or in simpler words, scaling will make the data points generalized so that the distance between them will be lower. If the difference between the data points is very high, the model could be unstable, which would result in the model producing poor results. Another reason why this makes more sense is the intercept comes as negative without changing the year, and since life expectancy cannot be negative, it makes sense to scale the data.**
+
+```{r}
+data$mod_year=data$year-2000
+head(data)
+model<-lm(lifeExpectancy~mod_year,data=data)
+summary(model)
+```
+
+**b0 here is 67.40, which is the life expectancy when the year is 0, and b1 is 0.30 which is the coefficient of how year parameter affects the life expectancy.**
+
+**Moving to multiple regression: Estimated the model where I also add the continent (variable region)**
+
+```{r}
+model1<-lm(lifeExpectancy~mod_year+region,data=data)
+summary(model1)
+```
+
+**The region dummies are Americas, Asia, Europe and Oceania. The reference category is Africas. The p value for time trend is <2e-16. The time trend is statistically significant as the probability is less than 0.05. This model performs better than the previous one, since the r square value is higher here. **
+
+**Added two additional variables to the model: log of GDP per capita, and fertility rate. Estimated this model.This model performs better as the adjusted R square is 0.8485, which is higher the the previous two models.**
+```{r}
+model2<-lm(lifeExpectancy~mod_year+region+fertilityRate+log(GDP_PC),data=data)
+summary(model2)
+```
+
+**All betas are statistically significant. Fertility rate intercept is now negative. The region dummy values have changed a bit. Europe was the leading region before, but now Americas is leading the pack in terms of the value.Additional variables made the ranking of the continents look different as each additional variable brings new beta which alters how the parameters are interacting with the dependent variable.**
+
+**Based on the most recent model, Americas has the highest life expectancy followed by Asia then Oceania then Europe. We come to this conclusion from the beta values.**
+
